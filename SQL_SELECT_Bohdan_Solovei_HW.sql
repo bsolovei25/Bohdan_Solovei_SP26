@@ -6,10 +6,10 @@ Task 1 conditions:
 - Sort alphabetically by title
 */
 /*I'd recommend  suing solution CTE
-/*
- * CTE solution
- */
-JOIN types used:
+
+CTE solution
+*/
+ /*JOIN types used:
 - INNER JOIN public.film_category: keeps only films that have at least one category mapping
 - INNER JOIN public.category: keeps only films whose mapped category exists and matches 'Animation'
 
@@ -27,7 +27,7 @@ WITH animation_films AS (
         ON fc.film_id = f.film_id
     INNER JOIN public.category AS c
         ON c.category_id = fc.category_id
-    WHERE c.name = 'Animation'
+    WHERE LOWER(c.name) = 'animation'
 )
 SELECT
     af.title,
