@@ -1,13 +1,5 @@
 CREATE SCHEMA IF NOT EXISTS core;
 
--- ============================================================
--- TASK 1. VIEW
--- ============================================================
-
--- The view filters data by the real current year and quarter.
--- The provided sample dataset contains payment data only for historical periods
--- (2017, quarters 1 and 2), therefore the dynamic view returns zero rows.
-
 CREATE OR REPLACE VIEW core.sales_revenue_by_category_qtr AS
 SELECT
     c.name AS category_name,
@@ -41,25 +33,6 @@ FROM payment
 GROUP BY 1, 2
 ORDER BY 1, 2;
 
--- ============================================================
--- TASK 2. Create a query language functions
--- ============================================================
-
-/*
-FUNCTION: core.get_sales_revenue_by_category_qtr(p_year, p_quarter)
-
-Why parameter is needed:
-- The view is fixed to the current quarter/year.
-- The function allows analysis for any requested year/quarter, which is
-  useful for testing and for historical reporting.
-
-What happens if:
-- invalid quarter is passed:
-  There will be no sql error unless the get_sales_revenue_by_category_qtr_checked with check that quater is in (1..4) quarter is created.
-- no data exists:
-  The function returns an empty result set. Because "no sales found" is a valid business outcome.
-
-*/
 
 CREATE OR REPLACE FUNCTION core.get_sales_revenue_by_category_qtr(
     p_year integer,
@@ -90,7 +63,20 @@ AS $$
     ORDER BY total_sales_revenue DESC, c.name;
 $$;
 
--- Wrapper validation function because SQL-language functions cannot easily RAISE EXCEPTION
+
+                                                                                           CREATE OR REPLACE VIEW core.sales_revenue_by_category_qtr AS
+                                                                                           SELECT
+                                                                                               c.name AS category_name,
+                                                                                               SUM(p.amount) AS total_sales_revenue
+                                                                                           FROM payment AS p
+                                                                                           JOIN rental AS r
+                                                                                               ON r.rental_id = p.rental_id
+                                                                                           JOIN inventory AS i
+                                                                                               ON i.inventory_id = r.inventory_id
+                                                                                           JOIN film_category AS fc
+                                                                                               ON fc.film_id = i.film_id
+                                                                                           JOIN category AS c
+                                                                                               ON c.category_id = fc.category_id
 CREATE OR REPLACE FUNCTION core.get_sales_revenue_by_category_qtr_checked(
     p_year integer,
     p_quarter integer
@@ -120,36 +106,14 @@ BEGIN
 END;
 $$;
 
--- Tests for Task 2
--- Valid input:
+
 SELECT * FROM core.get_sales_revenue_by_category_qtr(2017, 2);
 
---inputs empty table - no sql error 
+
 SELECT * FROM core.get_sales_revenue_by_category_qtr(2017, 5);
 
---returns "Invalid quarter: %. Allowed values are 1, 2, 3, 4"
 SELECT * FROM core.get_sales_revenue_by_category_qtr_checked(2017, 5);
 
-
--- ============================================================
--- TASK 3. Create procedure language functions
--- ============================================================
-
-/*
-
-- Popularity is defined by rental count (number of rentals), not revenue.
-- This is calculated as COUNT(r.rental_id) per country and film.
-
-How ties are handled:
-- ROW_NUMBER is used per country ordered by:
-  1) rental_count DESC
-  2) film title ASC
-- This means if two films have the same rental count, the alphabetically
-  smaller title is chosen deterministically as the single returned row.
-
-What happens if country has no data:
-- The function still returns one row for that requested country with NULLs
-*/
 
 CREATE OR REPLACE FUNCTION core.most_popular_films_by_countries(
     p_countries text[]
@@ -224,45 +188,14 @@ BEGIN
 END;
 $$;
 
--- Tests for Task 3
--- Valid input:
 SELECT * 
 FROM core.most_popular_films_by_countries(ARRAY['Afghanistan','Brazil','United States']);
 
--- Edge input: country with no data
 SELECT *
 FROM core.most_popular_films_by_countries(ARRAY['Atlantis','Brazil']);
 
 
--- ============================================================
--- TASK 4. PROCEDURE LANGUAGE FUNCTION
--- films in stock by partial title
--- ============================================================
 
-/*
-FUNCTION: core.films_in_stock_by_title(p_title_pattern text, p_store_id integer default null)
-
-
-Performance considerations:
-
-- Leading wildcard searches like '%love%' can become slow on large datasets
-  because a standard B-tree index on title is usually not used efficiently.
-  
-  
-how your implementation minimizes unnecessary data processing
-- This implementation minimizes unnecessary processing by:
-  1) filtering matching titles first in a CTE,
-  2) checking stock availability before joining to broader result sets,
-  3) optionally allowing store filtering through p_store_id.
-
-What happens if:
-- multiple matches:
-  all matching in-stock films are returned.
-- no matches:
-  the function raises an exception with a clear message.
-- incorrect input parameter:
-  NULL or blank pattern raises an exception.
-*/
 
 CREATE OR REPLACE FUNCTION core.films_in_stock_by_title(
     p_title_pattern text,
@@ -367,43 +300,9 @@ BEGIN
 END;
 $$;
 
--- Tests for Task 4
--- Valid input:
 SELECT * FROM core.films_in_stock_by_title('%love%');
 
--- Valid input with optional parameter:
 SELECT * FROM core.films_in_stock_by_title('%love%', 1);
-
--- ============================================================
--- TASK 5. Create procedure language functions
--- ============================================================
-
-/*
-
-How unique ID is generated:
-- COALESCE(MAX(film_id), 0) + 1
-- This avoids hardcoding IDs.
-- In a production system, a sequence would be better for concurrency, but the
-  task explicitly asks for generated unique ID without hardcoding.
-
-How duplicates are prevented:
-- Case-insensitive duplicate check on film title using UPPER(title) = UPPER(p_title).
-- If duplicate exists, RAISE EXCEPTION stops insertion.
-
-What happens if movie already exists:
-- Exception is raised and nothing is inserted.
-
-How language existence is validated:
-- Looks up language_id by language name.
-- If no such language exists, exception is raised.
-
-What happens if insertion fails:
-- Exception propagates and the statement is rolled back by PostgreSQL.
-
-How consistency is preserved:
-- Validation occurs before INSERT.
-- Foreign key integrity is maintained through valid language_id.
-*/
 
 
 CREATE OR REPLACE FUNCTION core.new_movie(
@@ -512,5 +411,4 @@ BEGIN
 END;
 $$;
 
--- Tests for Task 5
 SELECT * FROM core.new_movie('My New Demo Film',2017, 'English');
