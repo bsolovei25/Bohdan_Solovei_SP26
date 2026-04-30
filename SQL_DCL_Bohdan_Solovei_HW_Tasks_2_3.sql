@@ -1,6 +1,17 @@
 
 DROP ROLE IF EXISTS rentaluser;
-CREATE USER rentaluser WITH PASSWORD 'rentalpassword';
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_roles WHERE rolname = 'rentaluser'
+    ) THEN
+        CREATE USER rentaluser WITH PASSWORD 'rentalpassword';
+        RAISE NOTICE 'User rentaluser created';
+    ELSE
+        RAISE NOTICE 'User rentaluser already exists';
+    END IF;
+END
+$$;
 
 GRANT CONNECT ON DATABASE dvdrental TO rentaluser;
 
@@ -9,7 +20,19 @@ GRANT SELECT ON TABLE public.customer TO rentaluser;
 
 
 DROP ROLE IF EXISTS rental;
-CREATE ROLE rental NOLOGIN;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_roles WHERE rolname = 'rental'
+    ) THEN
+        CREATE ROLE rental NOLOGIN;
+        RAISE NOTICE 'Role rental created';
+    ELSE
+        RAISE NOTICE 'Role rental already exists';
+    END IF;
+END
+$$;
 GRANT rental TO rentaluser;
 
 GRANT INSERT, UPDATE ON TABLE public.rental TO rental;
@@ -64,27 +87,50 @@ WHERE rental_id = (SELECT MAX(rental_id) FROM public.rental);
 ALTER TABLE public.rental ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY rental_policy
-ON public.rental
-FOR SELECT
-USING (
-    customer_id = (
-        SELECT c.customer_id
-        FROM public.customer c
-        WHERE 'client_' || c.first_name || '_' || c.last_name = current_user
-    )
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_policies
+        WHERE policyname = 'rental_policy'
+          AND tablename = 'rental'
+    ) THEN
+        CREATE POLICY rental_policy
+        ON public.rental
+        FOR SELECT
+        USING (
+            customer_id = (
+                SELECT c.customer_id
+                FROM public.customer c
+                WHERE 'client_' || c.first_name || '_' || c.last_name = current_user
+            )
+        );
+    END IF;
+END
+$$;
 
-CREATE POLICY payment_policy
-ON public.payment
-FOR SELECT
-USING (
-    customer_id = (
-        SELECT c.customer_id
-        FROM public.customer c
-        WHERE 'client_' || c.first_name || '_' || c.last_name = current_user
-    )
-);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_policies
+          WHERE tablename = 'payment'
+          AND policyname = 'payment_policy'
+    ) THEN
+        CREATE POLICY payment_policy
+        ON public.payment
+        FOR SELECT
+        USING (
+            customer_id = (
+                SELECT c.customer_id
+                FROM public.customer c
+                WHERE 'client_' || c.first_name || '_' || c.last_name = current_user
+            )
+        );
+    END IF;
+END
+$$;
 
 SELECT current_user;
 
