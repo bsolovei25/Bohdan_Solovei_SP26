@@ -1,6 +1,5 @@
-CREATE SCHEMA IF NOT EXISTS core;
 
-CREATE OR REPLACE VIEW core.sales_revenue_by_category_qtr AS
+CREATE OR REPLACE VIEW sales_revenue_by_category_qtr AS
 SELECT
     c.name AS category_name,
     SUM(p.amount) AS total_sales_revenue
@@ -21,7 +20,7 @@ ORDER BY total_sales_revenue DESC, c.name;
 
 --select distinct EXTRACT(YEAR FROM p.payment_date),EXTRACT(QUARTER FROM p.payment_date) from payment AS p
 
---SELECT * FROM core.sales_revenue_by_category_qtr;
+--SELECT * FROM sales_revenue_by_category_qtr;
 
 -- Example of data that should NOT appear
 SELECT
@@ -34,9 +33,8 @@ GROUP BY 1, 2
 ORDER BY 1, 2;
 
 
-CREATE OR REPLACE FUNCTION core.get_sales_revenue_by_category_qtr(
-    p_year integer,
-    p_quarter integer
+CREATE OR REPLACE FUNCTION get_sales_revenue_by_category_qtr(
+    p_date date
 )
 RETURNS TABLE (
     category_name text,
@@ -56,30 +54,29 @@ AS $$
         ON fc.film_id = i.film_id
     JOIN category AS c
         ON c.category_id = fc.category_id
-    WHERE EXTRACT(YEAR FROM p.payment_date) = p_year
-      AND EXTRACT(QUARTER FROM p.payment_date) = p_quarter
+    WHERE EXTRACT(YEAR FROM p.payment_date) = EXTRACT(YEAR FROM p_date)
+      AND EXTRACT(QUARTER FROM p.payment_date) = EXTRACT(QUARTER FROM p_date)
     GROUP BY c.name
     HAVING SUM(p.amount) > 0
     ORDER BY total_sales_revenue DESC, c.name;
 $$;
 
 
-                                                                                           CREATE OR REPLACE VIEW core.sales_revenue_by_category_qtr AS
-                                                                                           SELECT
-                                                                                               c.name AS category_name,
-                                                                                               SUM(p.amount) AS total_sales_revenue
-                                                                                           FROM payment AS p
-                                                                                           JOIN rental AS r
-                                                                                               ON r.rental_id = p.rental_id
-                                                                                           JOIN inventory AS i
-                                                                                               ON i.inventory_id = r.inventory_id
-                                                                                           JOIN film_category AS fc
-                                                                                               ON fc.film_id = i.film_id
-                                                                                           JOIN category AS c
-                                                                                               ON c.category_id = fc.category_id
-CREATE OR REPLACE FUNCTION core.get_sales_revenue_by_category_qtr_checked(
-    p_year integer,
-    p_quarter integer
+CREATE OR REPLACE VIEW sales_revenue_by_category_qtr AS
+SELECT
+   c.name AS category_name,
+   SUM(p.amount) AS total_sales_revenue
+FROM payment AS p
+JOIN rental AS r
+   ON r.rental_id = p.rental_id
+JOIN inventory AS i
+   ON i.inventory_id = r.inventory_id
+JOIN film_category AS fc
+   ON fc.film_id = i.film_id
+JOIN category AS c
+   ON c.category_id = fc.category_id
+CREATE OR REPLACE FUNCTION get_sales_revenue_by_category_qtr_checked(
+    p_date date
 )
 RETURNS TABLE (
     category_name text,
@@ -88,34 +85,34 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    IF p_year IS NULL THEN
-        RAISE EXCEPTION 'Year parameter cannot be NULL';
+    IF p_date IS NULL THEN
+        RAISE EXCEPTION 'Date parameter cannot be NULL';
     END IF;
 
-    IF p_quarter IS NULL THEN
-        RAISE EXCEPTION 'Quarter parameter cannot be NULL';
-    END IF;
-
-    IF p_quarter NOT BETWEEN 1 AND 4 THEN
-        RAISE EXCEPTION 'Invalid quarter: %. Allowed values are 1, 2, 3, 4', p_quarter;
+    IF EXTRACT(YEAR FROM p_date) <= 0
+       OR EXTRACT(YEAR FROM p_date) > EXTRACT(YEAR FROM CURRENT_DATE) THEN
+        RAISE EXCEPTION
+            'Invalid year: %. Year must be greater than 0 and not greater than current year %',
+            EXTRACT(YEAR FROM p_date),
+            EXTRACT(YEAR FROM CURRENT_DATE);
     END IF;
 
     RETURN QUERY
     SELECT *
-    FROM core.get_sales_revenue_by_category_qtr(p_year, p_quarter);
+    FROM get_sales_revenue_by_category_qtr(p_date);
 END;
 $$;
 
 
-SELECT * FROM core.get_sales_revenue_by_category_qtr(2017, 2);
+SELECT * FROM get_sales_revenue_by_category_qtr('2017-02-01');
 
 
-SELECT * FROM core.get_sales_revenue_by_category_qtr(2017, 5);
+SELECT * FROM get_sales_revenue_by_category_qtr('2017-05-01');
 
-SELECT * FROM core.get_sales_revenue_by_category_qtr_checked(2017, 5);
+SELECT * FROM get_sales_revenue_by_category_qtr_checked('2017-05-01');
 
 
-CREATE OR REPLACE FUNCTION core.most_popular_films_by_countries(
+CREATE OR REPLACE FUNCTION most_popular_films_by_countries(
     p_countries text[]
 )
 RETURNS TABLE (
@@ -189,15 +186,15 @@ END;
 $$;
 
 SELECT * 
-FROM core.most_popular_films_by_countries(ARRAY['Afghanistan','Brazil','United States']);
+FROM most_popular_films_by_countries(ARRAY['Afghanistan','Brazil','United States']);
 
 SELECT *
-FROM core.most_popular_films_by_countries(ARRAY['Atlantis','Brazil']);
+FROM most_popular_films_by_countries(ARRAY['Atlantis','Brazil']);
 
 
 
 
-CREATE OR REPLACE FUNCTION core.films_in_stock_by_title(
+CREATE OR REPLACE FUNCTION films_in_stock_by_title(
     p_title_pattern text,
     p_store_id integer DEFAULT NULL
 )
@@ -300,15 +297,15 @@ BEGIN
 END;
 $$;
 
-SELECT * FROM core.films_in_stock_by_title('%love%');
+SELECT * FROM films_in_stock_by_title('%love%');
 
-SELECT * FROM core.films_in_stock_by_title('%love%', 1);
+SELECT * FROM films_in_stock_by_title('%love%', 1);
 
 
-CREATE OR REPLACE FUNCTION core.new_movie(
+CREATE OR REPLACE FUNCTION new_movie(
     p_title text,
-    p_release_year integer,
-    p_language_name text
+    p_release_year integer DEFAULT EXTRACT(YEAR FROM CURRENT_DATE),
+    p_language_name text DEFAULT 'Klingon',
 )
 RETURNS TABLE (
     film_id integer,
@@ -381,7 +378,7 @@ BEGIN
     VALUES (
         v_film_id,
         btrim(p_title),
-        'Inserted by core.new_movie',
+        'Inserted by new_movie',
         p_release_year,
         v_language_id,
         NULL,
@@ -411,4 +408,4 @@ BEGIN
 END;
 $$;
 
-SELECT * FROM core.new_movie('My New Demo Film',2017, 'English');
+SELECT * FROM new_movie('My New Demo Film',2017, 'English');
