@@ -1,0 +1,72 @@
+1. What operations do the following functions perform: film_in_stock, film_not_in_stock, inventory_in_stock, get_customer_balance, inventory_held_by_customer, rewards_report, last_day? You can find these functions in dvd_rental database.
+film_in_stock – loops through inventory and returns items where inventory_in_stock = TRUE.
+FOR inventory_id IN
+    SELECT inventory_id FROM inventory
+    WHERE film_id = p_film_id AND store_id = p_store_id
+LOOP
+    IF inventory_in_stock(inventory_id) THEN
+        RETURN NEXT inventory_id;
+    END IF;
+END LOOP;
+
+film_not_in_stock – same logic but returns items currently rented.
+IF NOT inventory_in_stock(inventory_id)
+
+inventory_in_stock – checks if rental exists with return_date IS NULL.
+SELECT COUNT(*) FROM rental
+WHERE inventory_id = p_inventory_id
+AND return_date IS NULL;
+
+inventory_held_by_customer – returns customer_id if item is currently rented.
+SELECT customer_id
+FROM rental
+WHERE inventory_id = p_inventory_id
+AND return_date IS NULL;
+
+get_customer_balance – calculates balance = rental fees + penalties – payments.
+balance =rental fees + overdue penalties - payments made
+
+rewards_report – intended to return eligible customers but fails due to date logic.
+last_day – returns last day of month using date_trunc + interval.
+RETURN (date_trunc('month', $1) + interval '1 month - 1 day')::date;
+
+2. Why does ‘rewards_report’ function return 0 rows? Correct and recreate the function, so that it's able to return rows properly.
+Uses CURRENT_DATE while dataset is from 2005–2007 → no matches.
+Correct: replace (SELECT MAX(payment_date) FROM payment)
+
+3. Is there any function that can potentially be removed from the dvd_rental codebase (inefficient? redundant)? If so, which one and why?
+_group_concat is redundant because PostgreSQL has string_agg().
+
+4. Which functions violate best practices?
+rewards_report – unnecessary dynamic SQL, wrong date logic.
+get_customer_balance – incomplete logic.
+film_in_stock – uses loops instead of set-based queries.
+
+5. The ‘get_customer_balance’ function describes the business requirements for calculating the client balance. Unfortunately, not all of them are implemented in this function. Try to change function using the requirements from the comments.
+Does not fully implement penalties and rental duration logic.
+Should include overdue fee calculation and proper aggregation.
+SELECT SUM(rental_rate)
++ SUM(
+CASE
+WHEN return_date > rental_date + rental_duration
+THEN (return_date - expected_return) * daily_fee
+ELSE 0
+END
+)
+- SUM(payments)
+
+6. How do ‘group_concat’ and ‘_group_concat’ functions work? (database creation script might help) Where are they used?
+Custom aggregation for string concatenation.
+Should be replaced by string_agg().
+
+7. What does ‘last_updated’ function do? Where is it used?
+Trigger function that sets NEW.last_update = CURRENT_TIMESTAMP.
+Used in BEFORE UPDATE triggers.
+
+8. What is tmpSQL variable for in ‘rewards_report’ function? Can this function be recreated without EXECUTE statement and dynamic SQL? Why?
+Dynamic SQL string used in rewards_report.
+Can be replaced with static SQL using RETURN QUERY.
+
+9. Can any function produce incorrect results? Why?
+-- rewards_report uses dynamic SQL unnecessarily and incorrect date logic
+-- get_customer_balance does not fully implement business rules
