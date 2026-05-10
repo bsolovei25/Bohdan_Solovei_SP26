@@ -155,158 +155,215 @@ ALTER TABLE household_store.order_item
 --SECTION 4. SAMPLE DATA
 
 INSERT INTO household_store.category (category_name, category_desc)
-VALUES
-    ('Refrigerators', 'Cooling and food preservation appliances'),
-    ('Washing Machines', 'Laundry appliances for home use'),
-    ('Microwaves', 'Compact kitchen heating appliances'),
-    ('Vacuum Cleaners', 'Cleaning appliances for floor and surface care'),
-    ('Air Conditioners', 'Home climate control appliances'),
-    ('Dishwashers', 'Automatic dish cleaning appliances');
+SELECT *
+FROM (
+    VALUES
+        ('Refrigerators', 'Cooling and food preservation appliances'),
+        ('Washing Machines', 'Laundry appliances for home use'),
+        ('Microwaves', 'Compact kitchen heating appliances'),
+        ('Vacuum Cleaners', 'Cleaning appliances for floor and surface care'),
+        ('Air Conditioners', 'Home climate control appliances'),
+        ('Dishwashers', 'Automatic dish cleaning appliances')
+) AS v(category_name, category_desc)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM household_store.category c
+    WHERE c.category_name = v.category_name
+);
 
-INSERT INTO household_store.supplier (supplier_name, contact_person, phone, email, city, supplier_status)
-VALUES
-    ('ElectroSupply LLC', 'Olena Koval', '+380441110001', 'sales@electrosupply.ua', 'Kyiv', 'ACTIVE'),
-    ('HomeTech Distribution', 'Ivan Petrenko', '+380441110002', 'contact@hometech.ua', 'Lviv', 'ACTIVE'),
-    ('Nordic Appliances Hub', 'Maksym Bondar', '+380441110003', 'orders@nordichub.ua', 'Odesa', 'ACTIVE'),
-    ('SmartRetail Partners', 'Iryna Shevchenko', '+380441110004', 'procurement@smartretail.ua', 'Dnipro', 'ACTIVE'),
-    ('Urban Device Trade', 'Andrii Melnyk', '+380441110005', 'team@urbandevice.ua', 'Kharkiv', 'ACTIVE'),
-    ('Prime Domestic Goods', 'Svitlana Hrytsenko', '+380441110006', 'hello@primedomestic.ua', 'Kyiv', 'ACTIVE');
+INSERT INTO household_store.supplier (
+    supplier_name, contact_person, phone, email, city, supplier_status
+)
+SELECT *
+FROM (
+    VALUES
+        ('ElectroSupply LLC', 'Olena Koval', '+380441110001', 'sales@electrosupply.ua', 'Kyiv', 'ACTIVE'),
+        ('HomeTech Distribution', 'Ivan Petrenko', '+380441110002', 'contact@hometech.ua', 'Lviv', 'ACTIVE'),
+        ('Nordic Appliances Hub', 'Maksym Bondar', '+380441110003', 'orders@nordichub.ua', 'Odesa', 'ACTIVE'),
+        ('SmartRetail Partners', 'Iryna Shevchenko', '+380441110004', 'procurement@smartretail.ua', 'Dnipro', 'ACTIVE'),
+        ('Urban Device Trade', 'Andrii Melnyk', '+380441110005', 'team@urbandevice.ua', 'Kharkiv', 'ACTIVE'),
+        ('Prime Domestic Goods', 'Svitlana Hrytsenko', '+380441110006', 'hello@primedomestic.ua', 'Kyiv', 'ACTIVE')
+) AS v(supplier_name, contact_person, phone, email, city, supplier_status)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM household_store.supplier s
+    WHERE s.supplier_name = v.supplier_name
+       OR s.email = v.email
+);
 
-INSERT INTO household_store.customer (first_name, last_name, email, phone, city, loyalty_level, registered_at)
-VALUES
-    ('Olha', 'Marchenko', 'olha.marchenko@gmail.com', '+380671000001', 'Kyiv', 'GOLD', CURRENT_TIMESTAMP - INTERVAL '88 days'),
-    ('Taras', 'Klymenko', 'taras.klymenko@gmail.com', '+380671000002', 'Lviv', 'STANDARD', CURRENT_TIMESTAMP - INTERVAL '79 days'),
-    ('Iryna', 'Bondarenko', 'iryna.bondarenko@gmail.com', '+380671000003', 'Odesa', 'SILVER', CURRENT_TIMESTAMP - INTERVAL '66 days'),
-    ('Dmytro', 'Shevchuk', 'dmytro.shevchuk@gmail.com', '+380671000004', 'Dnipro', 'PLATINUM', CURRENT_TIMESTAMP - INTERVAL '53 days'),
-    ('Kateryna', 'Hnatiuk', 'kateryna.hnatiuk@gmail.com', '+380671000005', 'Kharkiv', 'STANDARD', CURRENT_TIMESTAMP - INTERVAL '41 days'),
-    ('Maksym', 'Tymoshenko', 'maksym.tymoshenko@gmail.com', '+380671000006', 'Kyiv', 'SILVER', CURRENT_TIMESTAMP - INTERVAL '29 days');
+
+INSERT INTO household_store.customer (
+    first_name, last_name, email, phone, city, loyalty_level, registered_at
+)
+SELECT *
+FROM (
+    VALUES
+        ('Olha', 'Marchenko', 'olha.marchenko@gmail.com', '+380671000001', 'Kyiv', 'GOLD', CURRENT_TIMESTAMP - INTERVAL '88 days'),
+        ('Taras', 'Klymenko', 'taras.klymenko@gmail.com', '+380671000002', 'Lviv', 'STANDARD', CURRENT_TIMESTAMP - INTERVAL '79 days'),
+        ('Iryna', 'Bondarenko', 'iryna.bondarenko@gmail.com', '+380671000003', 'Odesa', 'SILVER', CURRENT_TIMESTAMP - INTERVAL '66 days'),
+        ('Dmytro', 'Shevchuk', 'dmytro.shevchuk@gmail.com', '+380671000004', 'Dnipro', 'PLATINUM', CURRENT_TIMESTAMP - INTERVAL '53 days'),
+        ('Kateryna', 'Hnatiuk', 'kateryna.hnatiuk@gmail.com', '+380671000005', 'Kharkiv', 'STANDARD', CURRENT_TIMESTAMP - INTERVAL '41 days'),
+        ('Maksym', 'Tymoshenko', 'maksym.tymoshenko@gmail.com', '+380671000006', 'Kyiv', 'SILVER', CURRENT_TIMESTAMP - INTERVAL '29 days')
+) AS v(first_name, last_name, email, phone, city, loyalty_level, registered_at)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM household_store.customer c
+    WHERE c.email = v.email
+);
+
 
 INSERT INTO household_store.product (
     category_id, supplier_id, sku, product_name, brand, model,
     unit_price, stock_quantity, warranty_months, reorder_level, active_flag, created_at
 )
-VALUES
-    (
-        (SELECT category_id FROM household_store.category WHERE category_name = 'Refrigerators'),
-        (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'ElectroSupply LLC'),
-        'RF-SAM-001', 'Double Door Refrigerator', 'Samsung', 'RB34T600FSA',
-        27999.00, 12, 36, 3, TRUE, CURRENT_TIMESTAMP - INTERVAL '85 days'
-    ),
-    (
-        (SELECT category_id FROM household_store.category WHERE category_name = 'Washing Machines'),
-        (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'HomeTech Distribution'),
-        'WM-LG-001', 'Front Load Washing Machine', 'LG', 'F2V5GS0W',
-        21499.00, 10, 24, 2, TRUE, CURRENT_TIMESTAMP - INTERVAL '81 days'
-    ),
-    (
-        (SELECT category_id FROM household_store.category WHERE category_name = 'Microwaves'),
-        (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'Nordic Appliances Hub'),
-        'MW-PHI-001', 'Digital Microwave Oven', 'Philips', 'HD9252',
-        4999.00, 22, 12, 5, TRUE, CURRENT_TIMESTAMP - INTERVAL '74 days'
-    ),
-    (
-        (SELECT category_id FROM household_store.category WHERE category_name = 'Vacuum Cleaners'),
-        (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'SmartRetail Partners'),
-        'VC-BOS-001', 'Bagless Vacuum Cleaner', 'Bosch', 'BGS05A220',
-        6599.00, 18, 24, 4, TRUE, CURRENT_TIMESTAMP - INTERVAL '62 days'
-    ),
-    (
-        (SELECT category_id FROM household_store.category WHERE category_name = 'Air Conditioners'),
-        (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'Urban Device Trade'),
-        'AC-GRE-001', 'Inverter Air Conditioner', 'Gree', 'GWH12QC',
-        18999.00, 8, 24, 2, TRUE, CURRENT_TIMESTAMP - INTERVAL '49 days'
-    ),
-    (
-        (SELECT category_id FROM household_store.category WHERE category_name = 'Dishwashers'),
-        (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'Prime Domestic Goods'),
-        'DW-BEK-001', 'Freestanding Dishwasher', 'Beko', 'DFN28424X',
-        17499.00, 7, 24, 2, TRUE, CURRENT_TIMESTAMP - INTERVAL '35 days'
-    );
+SELECT *
+FROM(
+    VALUES
+        (
+            (SELECT category_id FROM household_store.category WHERE category_name = 'Refrigerators'),
+            (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'ElectroSupply LLC'),
+            'RF-SAM-001', 'Double Door Refrigerator', 'Samsung', 'RB34T600FSA',
+            27999.00, 12, 36, 3, TRUE, CURRENT_TIMESTAMP - INTERVAL '85 days'
+        ),
+        (
+            (SELECT category_id FROM household_store.category WHERE category_name = 'Washing Machines'),
+            (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'HomeTech Distribution'),
+            'WM-LG-001', 'Front Load Washing Machine', 'LG', 'F2V5GS0W',
+            21499.00, 10, 24, 2, TRUE, CURRENT_TIMESTAMP - INTERVAL '81 days'
+        ),
+        (
+            (SELECT category_id FROM household_store.category WHERE category_name = 'Microwaves'),
+            (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'Nordic Appliances Hub'),
+            'MW-PHI-001', 'Digital Microwave Oven', 'Philips', 'HD9252',
+            4999.00, 22, 12, 5, TRUE, CURRENT_TIMESTAMP - INTERVAL '74 days'
+        ),
+        (
+            (SELECT category_id FROM household_store.category WHERE category_name = 'Vacuum Cleaners'),
+            (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'SmartRetail Partners'),
+            'VC-BOS-001', 'Bagless Vacuum Cleaner', 'Bosch', 'BGS05A220',
+            6599.00, 18, 24, 4, TRUE, CURRENT_TIMESTAMP - INTERVAL '62 days'
+        ),
+        (
+            (SELECT category_id FROM household_store.category WHERE category_name = 'Air Conditioners'),
+            (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'Urban Device Trade'),
+            'AC-GRE-001', 'Inverter Air Conditioner', 'Gree', 'GWH12QC',
+            18999.00, 8, 24, 2, TRUE, CURRENT_TIMESTAMP - INTERVAL '49 days'
+        ),
+        (
+            (SELECT category_id FROM household_store.category WHERE category_name = 'Dishwashers'),
+            (SELECT supplier_id FROM household_store.supplier WHERE supplier_name = 'Prime Domestic Goods'),
+            'DW-BEK-001', 'Freestanding Dishwasher', 'Beko', 'DFN28424X',
+            17499.00, 7, 24, 2, TRUE, CURRENT_TIMESTAMP - INTERVAL '35 days'
+        )) AS v(category_id, supplier_id, sku, product_name, brand, model,
+                   unit_price, stock_quantity, warranty_months, reorder_level, active_flag, created_at)
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM household_store.product p
+            WHERE p.sku = v.sku
+               OR (p.brand = v.brand AND p.model = v.model)
+        );
 
 INSERT INTO household_store.sales_order (order_number, customer_id, order_date, order_status, payment_method, notes)
-VALUES
-    (
-        'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '80 days', 'YYYYMMDD') || '-001',
-        (SELECT customer_id FROM household_store.customer WHERE email = 'olha.marchenko@gmail.com'),
-        CURRENT_TIMESTAMP - INTERVAL '80 days',
-        'DELIVERED', 'CARD', 'Home delivery completed'
-    ),
-    (
-        'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '68 days', 'YYYYMMDD') || '-001',
-        (SELECT customer_id FROM household_store.customer WHERE email = 'taras.klymenko@gmail.com'),
-        CURRENT_TIMESTAMP - INTERVAL '68 days',
-        'DELIVERED', 'ONLINE', 'Paid during website checkout'
-    ),
-    (
-        'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '54 days', 'YYYYMMDD') || '-001',
-        (SELECT customer_id FROM household_store.customer WHERE email = 'iryna.bondarenko@gmail.com'),
-        CURRENT_TIMESTAMP - INTERVAL '54 days',
-        'SHIPPED', 'BANK_TRANSFER', 'Awaiting final delivery confirmation'
-    ),
-    (
-        'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '42 days', 'YYYYMMDD') || '-001',
-        (SELECT customer_id FROM household_store.customer WHERE email = 'dmytro.shevchuk@gmail.com'),
-        CURRENT_TIMESTAMP - INTERVAL '42 days',
-        'PAID', 'CARD', 'Warehouse pickup scheduled'
-    ),
-    (
-        'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '26 days', 'YYYYMMDD') || '-001',
-        (SELECT customer_id FROM household_store.customer WHERE email = 'kateryna.hnatiuk@gmail.com'),
-        CURRENT_TIMESTAMP - INTERVAL '26 days',
-        'DELIVERED', 'CASH', 'Customer purchased in store'
-    ),
-    (
-        'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '12 days', 'YYYYMMDD') || '-001',
-        (SELECT customer_id FROM household_store.customer WHERE email = 'maksym.tymoshenko@gmail.com'),
-        CURRENT_TIMESTAMP - INTERVAL '12 days',
-        'PENDING', 'ONLINE', 'Order created, waiting for shipment'
-    );
+SELECT*
+FROM(
+    VALUES
+        (
+            'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '80 days', 'YYYYMMDD') || '-001',
+            (SELECT customer_id FROM household_store.customer WHERE email = 'olha.marchenko@gmail.com'),
+            CURRENT_TIMESTAMP - INTERVAL '80 days',
+            'DELIVERED', 'CARD', 'Home delivery completed'
+        ),
+        (
+            'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '68 days', 'YYYYMMDD') || '-001',
+            (SELECT customer_id FROM household_store.customer WHERE email = 'taras.klymenko@gmail.com'),
+            CURRENT_TIMESTAMP - INTERVAL '68 days',
+            'DELIVERED', 'ONLINE', 'Paid during website checkout'
+        ),
+        (
+            'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '54 days', 'YYYYMMDD') || '-001',
+            (SELECT customer_id FROM household_store.customer WHERE email = 'iryna.bondarenko@gmail.com'),
+            CURRENT_TIMESTAMP - INTERVAL '54 days',
+            'SHIPPED', 'BANK_TRANSFER', 'Awaiting final delivery confirmation'
+        ),
+        (
+            'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '42 days', 'YYYYMMDD') || '-001',
+            (SELECT customer_id FROM household_store.customer WHERE email = 'dmytro.shevchuk@gmail.com'),
+            CURRENT_TIMESTAMP - INTERVAL '42 days',
+            'PAID', 'CARD', 'Warehouse pickup scheduled'
+        ),
+        (
+            'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '26 days', 'YYYYMMDD') || '-001',
+            (SELECT customer_id FROM household_store.customer WHERE email = 'kateryna.hnatiuk@gmail.com'),
+            CURRENT_TIMESTAMP - INTERVAL '26 days',
+            'DELIVERED', 'CASH', 'Customer purchased in store'
+        ),
+        (
+            'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '12 days', 'YYYYMMDD') || '-001',
+            (SELECT customer_id FROM household_store.customer WHERE email = 'maksym.tymoshenko@gmail.com'),
+            CURRENT_TIMESTAMP - INTERVAL '12 days',
+            'PENDING', 'ONLINE', 'Order created, waiting for shipment'
+        );
+        ) AS v(order_number, customer_id, order_date, order_status, payment_method, notes)
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM household_store.sales_order so
+            WHERE so.order_number = v.order_number
+        );
 
 
 INSERT INTO household_store.order_item (order_id, product_id, quantity, unit_price, discount_percent)
-VALUES
-    (
-        (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '80 days', 'YYYYMMDD') || '-001'),
-        (SELECT product_id FROM household_store.product WHERE sku = 'RF-SAM-001'),
-        1,
-        (SELECT unit_price FROM household_store.product WHERE sku = 'RF-SAM-001'),
-        5.00
-    ),
-    (
-        (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '68 days', 'YYYYMMDD') || '-001'),
-        (SELECT product_id FROM household_store.product WHERE sku = 'WM-LG-001'),
-        1,
-        (SELECT unit_price FROM household_store.product WHERE sku = 'WM-LG-001'),
-        3.00
-    ),
-    (
-        (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '54 days', 'YYYYMMDD') || '-001'),
-        (SELECT product_id FROM household_store.product WHERE sku = 'MW-PHI-001'),
-        2,
-        (SELECT unit_price FROM household_store.product WHERE sku = 'MW-PHI-001'),
-        0.00
-    ),
-    (
-        (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '42 days', 'YYYYMMDD') || '-001'),
-        (SELECT product_id FROM household_store.product WHERE sku = 'VC-BOS-001'),
-        1,
-        (SELECT unit_price FROM household_store.product WHERE sku = 'VC-BOS-001'),
-        10.00
-    ),
-    (
-        (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '26 days', 'YYYYMMDD') || '-001'),
-        (SELECT product_id FROM household_store.product WHERE sku = 'AC-GRE-001'),
-        1,
-        (SELECT unit_price FROM household_store.product WHERE sku = 'AC-GRE-001'),
-        4.50
-    ),
-    (
-        (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '12 days', 'YYYYMMDD') || '-001'),
-        (SELECT product_id FROM household_store.product WHERE sku = 'DW-BEK-001'),
-        1,
-        (SELECT unit_price FROM household_store.product WHERE sku = 'DW-BEK-001'),
-        2.50
-    );
+SELECT*
+FROM(
+    VALUES
+        (
+            (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '80 days', 'YYYYMMDD') || '-001'),
+            (SELECT product_id FROM household_store.product WHERE sku = 'RF-SAM-001'),
+            1,
+            (SELECT unit_price FROM household_store.product WHERE sku = 'RF-SAM-001'),
+            5.00
+        ),
+        (
+            (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '68 days', 'YYYYMMDD') || '-001'),
+            (SELECT product_id FROM household_store.product WHERE sku = 'WM-LG-001'),
+            1,
+            (SELECT unit_price FROM household_store.product WHERE sku = 'WM-LG-001'),
+            3.00
+        ),
+        (
+            (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '54 days', 'YYYYMMDD') || '-001'),
+            (SELECT product_id FROM household_store.product WHERE sku = 'MW-PHI-001'),
+            2,
+            (SELECT unit_price FROM household_store.product WHERE sku = 'MW-PHI-001'),
+            0.00
+        ),
+        (
+            (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '42 days', 'YYYYMMDD') || '-001'),
+            (SELECT product_id FROM household_store.product WHERE sku = 'VC-BOS-001'),
+            1,
+            (SELECT unit_price FROM household_store.product WHERE sku = 'VC-BOS-001'),
+            10.00
+        ),
+        (
+            (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '26 days', 'YYYYMMDD') || '-001'),
+            (SELECT product_id FROM household_store.product WHERE sku = 'AC-GRE-001'),
+            1,
+            (SELECT unit_price FROM household_store.product WHERE sku = 'AC-GRE-001'),
+            4.50
+        ),
+        (
+            (SELECT order_id FROM household_store.sales_order WHERE order_number = 'SO-' || TO_CHAR(CURRENT_DATE - INTERVAL '12 days', 'YYYYMMDD') || '-001'),
+            (SELECT product_id FROM household_store.product WHERE sku = 'DW-BEK-001'),
+            1,
+            (SELECT unit_price FROM household_store.product WHERE sku = 'DW-BEK-001'),
+            2.50
+        );
+        ) AS v(order_id, product_id, quantity, unit_price, discount_percent)
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM household_store.order_item oi
+            WHERE oi.order_id = v.order_id
+              AND oi.product_id = v.product_id
+        );
 
 -- SECTION 5. FUNCTIONS
 
