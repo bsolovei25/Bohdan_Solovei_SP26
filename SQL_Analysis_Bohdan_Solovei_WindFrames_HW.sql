@@ -9,8 +9,8 @@ WITH yearly_channel_sales AS (
     JOIN sh.customers cu ON cu.cust_id = s.cust_id
     JOIN sh.countries co ON co.country_id = cu.country_id
     JOIN sh.channels ch ON ch.channel_id = s.channel_id
-    WHERE t.calendar_year BETWEEN 1999 AND 2001
-      AND co.country_region IN ('Americas', 'Asia', 'Europe')
+    WHERE t.calendar_year BETWEEN 1998 AND 2001
+      AND UPPER(co.country_region) IN ('AMERICAS', 'ASIA', 'EUROPE')
     GROUP BY co.country_region, t.calendar_year, ch.channel_desc
 ),
 calc AS (
@@ -22,12 +22,25 @@ calc AS (
         ROUND(
             amount_sold * 100.0 /
             SUM(amount_sold) OVER (
-		    PARTITION BY country_region, calendar_year
-		    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-			),
+                PARTITION BY country_region, calendar_year
+                ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+            ),
             2
         ) AS pct_by_channels
     FROM yearly_channel_sales
+),
+final_calc AS (
+    SELECT
+        country_region,
+        calendar_year,
+        channel_desc,
+        amount_sold,
+        pct_by_channels,
+        LAG(pct_by_channels) OVER (
+            PARTITION BY country_region, channel_desc
+            ORDER BY calendar_year
+        ) AS pct_previous_period
+    FROM calc
 )
 SELECT
     country_region,
@@ -35,16 +48,10 @@ SELECT
     channel_desc,
     amount_sold,
     pct_by_channels AS "% BY CHANNELS",
-    LAG(pct_by_channels) OVER (
-        PARTITION BY country_region, channel_desc
-        ORDER BY calendar_year
-    ) AS "% PREVIOUS PERIOD",
-    pct_by_channels -
-    LAG(pct_by_channels) OVER (
-        PARTITION BY country_region, channel_desc
-        ORDER BY calendar_year
-    ) AS "% DIFF"
-FROM calc
+    pct_previous_period AS "% PREVIOUS PERIOD",
+    pct_by_channels - pct_previous_period AS "% DIFF"
+FROM final_calc
+WHERE calendar_year BETWEEN 1999 AND 2001
 ORDER BY country_region, calendar_year, channel_desc;
 
 --task 2
@@ -59,27 +66,38 @@ WITH daily_sales AS (
     FROM sh.sales s
     JOIN sh.times t ON t.time_id = s.time_id
     WHERE t.calendar_year = 1999
-      AND t.calendar_week_number BETWEEN 49 AND 51
+      AND t.calendar_week_number BETWEEN 48 AND 52
     GROUP BY
         t.calendar_week_number,
         t.time_id,
         t.day_name
+),
+calc AS (
+    SELECT
+        calendar_week_number,
+        time_id,
+        day_name,
+        sales,
+        SUM(sales) OVER (
+            PARTITION BY calendar_week_number
+            ORDER BY time_id
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS cum_sum,
+        AVG(sales) OVER (
+            ORDER BY time_id
+            ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING
+        ) AS centered_3_day_avg
+    FROM daily_sales
 )
 SELECT
     calendar_week_number,
     time_id,
     day_name,
     sales,
-    SUM(sales) OVER (
-        PARTITION BY calendar_week_number
-        ORDER BY time_id
-        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) AS cum_sum,
-    AVG(sales) OVER (
-        ORDER BY time_id
-        ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING
-    ) AS centered_3_day_avg
-FROM daily_sales
+    cum_sum,
+    centered_3_day_avg
+FROM calc
+WHERE calendar_week_number BETWEEN 49 AND 51
 ORDER BY time_id;
 
 --Task 3
