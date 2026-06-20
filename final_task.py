@@ -54,14 +54,11 @@ class InvertedIndex:
     """
 
     def __init__(self, words_ids: Dict[str, List[int]]):
-        self.words_ids = {
-            word: sorted(set(doc_ids))
-            for word, doc_ids in words_ids.items()
-        }
+        self.words_ids = words_ids
 
     def query(self, words: List[str]) -> List[int]:
         """Return document ids containing all query words."""
-        words = [word.lower() for word in words if word]
+        words = [word.lower() for word in words if word and word.lower() not in STOP_WORDS]
 
         if not words:
             return []
@@ -84,8 +81,7 @@ class InvertedIndex:
         with open(filepath, "r", encoding="utf-8") as file_object:
             words_ids = json.load(file_object)
 
-        return cls({word: [int(doc_id) for doc_id in doc_ids]
-                    for word, doc_ids in words_ids.items()})
+        return cls(words_ids)
 
 
 def load_documents(filepath: str) -> Dict[int, str]:
@@ -119,7 +115,7 @@ def build_inverted_index(documents):
                 words_ids[word].add(doc_id)
 
     words_ids = {
-        word: sorted(list(doc_ids))
+        word: sorted(doc_ids)
         for word, doc_ids in words_ids.items()
     }
 
