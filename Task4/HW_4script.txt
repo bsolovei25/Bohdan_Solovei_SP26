@@ -1,0 +1,48 @@
+Fact Table Metrics Description FCT_BOOKINGS_DD
+
+FCT_TICKET_PRICE	Base ticket price paid by the customer
+FCT_OPERATING_COST	Airline operating cost associated with the booking
+FCT_AIRPORT_FEE	Airport taxes and airport service fees
+FCT_PROMOTION_DISCOUNT	Discount applied through promotions or loyalty programs
+FCT_PROFIT	Net profit generated from the booking
+BOOKING_SRC_ID	Booking business identifier (degenerate dimension)
+Calculated Metric
+
+NET_REVENUE	FCT_TICKET_PRICE − FCT_PROMOTION_DISCOUNT	Revenue received after discount application
+PROFIT_MARGIN_PCT	(FCT_PROFIT / FCT_TICKET_PRICE) × 100	Percentage profit margin for the booking
+TOTAL_COST	FCT_OPERATING_COST + FCT_AIRPORT_FEE	Total booking-related cost
+NET_PROFIT_AFTER_DISCOUNT	NET_REVENUE − TOTAL_COST	Actual profit after discounts and costs
+
+
+4. Dates script
+CREATE TABLE DIM_TIME_DAY (
+    EVENT_DT DATE PRIMARY KEY,
+    DAY_NUM NUMBER,
+    MONTH_NUM NUMBER,
+    MONTH_NAME VARCHAR2(20),
+    QUARTER_NUM NUMBER,
+    YEAR_NUM NUMBER
+);
+
+BEGIN
+    FOR i IN 0 .. 36524 LOOP
+        INSERT INTO DIM_TIME_DAY (
+            EVENT_DT,
+            DAY_NUM,
+            MONTH_NUM,
+            MONTH_NAME,
+            QUARTER_NUM,
+            YEAR_NUM
+        )
+        SELECT
+            DATE '2020-01-01' + i,
+            EXTRACT(DAY FROM DATE '2020-01-01' + i),
+            EXTRACT(MONTH FROM DATE '2020-01-01' + i),
+            TRIM(TO_CHAR(DATE '2020-01-01' + i, 'MONTH')),
+            TO_NUMBER(TO_CHAR(DATE '2020-01-01' + i, 'Q')),
+            EXTRACT(YEAR FROM DATE '2020-01-01' + i)
+        FROM dual;
+    END LOOP;
+
+    COMMIT;
+END;
