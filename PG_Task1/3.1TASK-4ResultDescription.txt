@@ -1,0 +1,11 @@
+Transaction 1 – INSERT INTO person VALUES (4, 'John')
+The newly inserted row received xmin = 1473, which corresponds to the transaction that inserted the row. The value xmax = 0 indicates that the row is active and has not been deleted. Existing rows retained their original transaction identifier (xmin = 1471). This demonstrates that PostgreSQL assigns a unique transaction identifier to every inserted tuple.
+Transaction 2 – UPDATE person SET name = 'Alex' WHERE id = 2
+The updated row received a new physical location (0,5) and a new transaction identifier xmin = 1474. This shows that PostgreSQL does not modify rows in place. Instead, it creates a new tuple version and marks the old tuple as obsolete.
+Transaction 3 – DELETE FROM person WHERE id = 3
+The record Robert is no longer visible in standard SELECT queries. However, PostgreSQL does not immediately remove the tuple from the physical storage. Instead, the tuple is marked as deleted by assigning a transaction identifier to its xmax field. The row remains in the heap page until a VACUUM operation reclaims the space.
+Transaction 4 – INSERT INTO person VALUES (999, 'Test')
+The inserted row received a new transaction identifier xmin = 1476 and remained active (xmax = 0). The tuple occupied a new physical position (0,6) within the table page.
+Transaction 5 – DELETE FROM person WHERE id = 999
+The row Test is no longer visible because PostgreSQL marked it as deleted. Similar to the previous delete operation, the tuple still exists physically inside the heap page and can be observed using the pageinspect extension. The tuple will remain until a VACUUM operation removes or reuses its storage space.
+
