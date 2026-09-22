@@ -1,0 +1,56 @@
+smoke_tests:
+  - name: Clients table exists
+    sql: >
+      SELECT COUNT(*)
+      FROM information_schema.tables
+      WHERE table_schema = 'dwh'
+        AND table_name = 'dwh_clients';
+    expected: 1
+
+  - name: Products table exists
+    sql: >
+      SELECT COUNT(*)
+      FROM information_schema.tables
+      WHERE table_schema = 'dwh'
+        AND table_name = 'dwh_products';
+    expected: 1
+
+  - name: Sales table exists
+    sql: >
+      SELECT COUNT(*)
+      FROM information_schema.tables
+      WHERE table_schema = 'dwh'
+        AND table_name = 'dwh_sales';
+    expected: 1
+
+critical_tests:
+  - name: No duplicate client IDs
+    sql: >
+      SELECT COUNT(*)
+      FROM (
+          SELECT client_id
+          FROM dwh.dwh_clients
+          GROUP BY client_id
+          HAVING COUNT(*) > 1
+      ) duplicates;
+    expected: 0
+
+  - name: No duplicate product IDs
+    sql: >
+      SELECT COUNT(*)
+      FROM (
+          SELECT product_id
+          FROM dwh.dwh_products
+          GROUP BY product_id
+          HAVING COUNT(*) > 1
+      ) duplicates;
+    expected: 0
+
+  - name: No sales with invalid client IDs
+    sql: >
+      SELECT COUNT(*)
+      FROM dwh.dwh_sales s
+      LEFT JOIN dwh.dwh_clients c
+          ON s.client_id = c.client_id
+      WHERE c.client_id IS NULL;
+    expected: 0
