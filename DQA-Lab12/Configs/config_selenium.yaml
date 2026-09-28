@@ -1,0 +1,6 @@
+global:
+  gallery_uri: "https://playground.powerbi.com/en-us/showcases-gallery"
+  report_uri: "https://playground.powerbi.com/showcases/Capture%20report%20views/index.html"
+  delay: 20
+  browser: "chrome"
+  headless: true
